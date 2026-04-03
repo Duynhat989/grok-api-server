@@ -6,7 +6,7 @@ const { error } = require("console");
 const TASK_MANAGERS = {};
 const RETRY = 20
 const clearUuid = (uuid) => {
-    console.log("TaskId: ",uuid)
+    console.log("TaskId: ", uuid)
     setTimeout(() => {
         delete TASK_MANAGERS[uuid];
     }, 15 * 60 * 1000);
@@ -35,7 +35,7 @@ const generateVideo = async (req, res) => {
         };
         clearUuid(taskId);
         (async () => {
-            let isSuccess = false
+            // Xử lý logic tạo video ở đây
             for (let index = 0; index <= RETRY; index++) {
                 TASK_MANAGERS[taskId].step = index
                 if (index == RETRY) {
@@ -44,7 +44,7 @@ const generateVideo = async (req, res) => {
                         code: "error",
                         msg: "max retry"
                     };
-                    return
+                    return false
                 }
 
                 systemReport.processing++
@@ -94,7 +94,8 @@ const generateVideo = async (req, res) => {
                                 code: "error",
                                 msg: resVideo.error
                             };
-                            return
+                            systemReport.error++
+                            return false
                         }
                     } else {
                         const pathUrls = [];
@@ -116,16 +117,16 @@ const generateVideo = async (req, res) => {
                                 data: pathUrls,
                                 step: index
                             };
-                            isSuccess = true
+                            systemReport.success++
                         } else {
                             TASK_MANAGERS[taskId] = {
                                 success: false,
                                 code: "error",
                                 msg: "Video generation failed"
                             };
-
+                            systemReport.error++
                         }
-                        return
+                        return false
                     }
                 } catch (err) {
                     console.log(err)
@@ -139,7 +140,7 @@ const generateVideo = async (req, res) => {
                     console.error("generate-video error:", err);
 
                 } finally {
-                    console.log("Clear")
+                    console.log("---Clear---")
                     // Finish task
                     if (accNew && accNew?.id) {
                         setTimeout(() => {
@@ -148,26 +149,19 @@ const generateVideo = async (req, res) => {
                         }, 10 * 1000)
                     }
                     systemReport.processing--
-
-                    if (isSuccess) {
-                        systemReport.success++
-                    } else {
-                        systemReport.error++
-                    }
-
                 }
             }
 
 
         })();
-        res.json({
+        return res.json({
             success: true,
             taskId,
             msg: "Task created successfully"
         });
 
     } catch (err) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             error: err.message
         });
@@ -301,6 +295,7 @@ const getTask = async (req, res) => {
     res.json({
         success: true,
         taskId,
+        system: systemReport,
         ...task
     });
 }

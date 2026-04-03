@@ -112,7 +112,12 @@ function loadData() {
         dataGrok = [];
     }
 }
-const cronjob = async () => {
+const CRON_JOB_REFRESH = async () => {
+    const AUTO_REFRESH_COOKIE = process.env.AUTO_REFRESH_COOKIE
+    if(AUTO_REFRESH_COOKIE !== "YES"){
+        console.log("AUTO_REFRESH_COOKIE OFF")
+        return
+    }
     while (true) {
         // Xử lý lại dữ liệu
         loadData()
@@ -142,4 +147,7 @@ const cronjob = async () => {
 
     }
 }
-// cronjob()
+
+module.exports = {
+    CRON_JOB_REFRESH
+}

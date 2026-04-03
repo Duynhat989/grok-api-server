@@ -210,7 +210,7 @@ class APIClientGrok {
             let ext = type !== "img" ? "mp4" : "jpg";
             const uuid = randomUUID();
 
-            await this.client.downloadVideo(assetUrl, `./storages/idea${uuid}.${ext}`);
+            await this.client.downloadVideo(assetUrl, `./storages/geminigen_${uuid}.${ext}`);
 
             return `geminigen_${uuid}.${ext}`;
 

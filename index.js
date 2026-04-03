@@ -37,11 +37,11 @@ app.use(bodyParser.json({ limit: '200mb' }));
 app.use(bodyParser.urlencoded({ limit: '200mb', extended: true }));
 
 // Khai báo middlewareler có thể dùng
-
 const {
     grokRoutes,
     managerRoutes
 } = require('./src/routes');
+const { CRON_JOB_REFRESH } = require('./resfresh');
 
 app.use('/api/grok', grokRoutes);
 app.use('/api/manager', managerRoutes);
@@ -49,3 +49,4 @@ app.use('/api/manager', managerRoutes);
 const PORT = 2053;
 server.listen(PORT, () => console.log(`Listen: ${PORT}`));
 
+CRON_JOB_REFRESH()
