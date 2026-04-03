@@ -1,0 +1,8 @@
+/node_modules/
+/stores/
+/temp_files/
+/storages/
+.env
+/resfresh/browser/
+/resfresh/win64/
+/profiles/

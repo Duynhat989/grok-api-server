@@ -1,0 +1,313 @@
+
+const APIClientGrok = require("../modules/APIClientGrok");
+const { randomUUID } = require("crypto");
+const AccountStore = require("../services/AccountStore");
+const { error } = require("console");
+const TASK_MANAGERS = {};
+const RETRY = 20
+const clearUuid = (uuid) => {
+    console.log("TaskId: ",uuid)
+    setTimeout(() => {
+        delete TASK_MANAGERS[uuid];
+    }, 15 * 60 * 1000);
+};
+
+const chromeData = {
+    version: "138.0.7204.184",
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
+}
+
+const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+const systemReport = {
+    success: 0,
+    error: 0,
+    processing: 0
+}
+const generateVideo = async (req, res) => {
+    try {
+        const { promptText, imageUrl, videoLength, resolutionName, aspectRatio = "9:16" } = req.body;
+        const taskId = randomUUID();
+        TASK_MANAGERS[taskId] = {
+            success: false,
+            code: "pending",
+            msg: "Video generation is in progress"
+        };
+        clearUuid(taskId);
+        (async () => {
+            let isSuccess = false
+            for (let index = 0; index <= RETRY; index++) {
+                TASK_MANAGERS[taskId].step = index
+                if (index == RETRY) {
+                    TASK_MANAGERS[taskId] = {
+                        success: false,
+                        code: "error",
+                        msg: "max retry"
+                    };
+                    return
+                }
+
+                systemReport.processing++
+
+                const accNew = await AccountStore.getNext()
+                try {
+                    if (!accNew?.id) {
+                        console.log("---NO ACCOUNT WAIT")
+                        await delay(10 * 1000)
+                        continue
+                    }
+                    console.log(accNew.id)
+                    // Cộng thêm phần xử lý
+                    AccountStore.incProcessing(accNew.id)
+                    // Xử lý nội dung
+                    const grok = new APIClientGrok({
+                        MY_COOKIE: accNew?.cookie,
+                        chromeVersion: chromeData.version,
+                        userAgent: chromeData.userAgent,
+                        proxyHttp: accNew.proxy
+                    });
+                    const resVideo = await grok.generateVideo({
+                        promptText,
+                        imageUrl,
+                        aspectRatio,
+                        videoLength: videoLength || 10,
+                        resolutionName: resolutionName || "720p"
+                    });
+                    if (!resVideo.success) {
+                        console.log(resVideo)
+                        if (JSON.stringify(resVideo).includes("Too Many Requests")) {
+                            console.log("---RETRY")
+                            continue
+                        }
+                        if (JSON.stringify(resVideo).includes("Unauthorized")) {
+                            console.log("---Remove acccount")
+                            AccountStore.remove(accNew.id)
+                            continue
+                        }
+                        if (JSON.stringify(resVideo).includes("reason: socket hang up")) {
+                            console.log("---Hangup")
+                            continue
+                        }
+                        else {
+                            TASK_MANAGERS[taskId] = {
+                                success: false,
+                                code: "error",
+                                msg: resVideo.error
+                            };
+                            return
+                        }
+                    } else {
+                        const pathUrls = [];
+                        for (const video of resVideo.videos) {
+
+                            const file = await grok.downloadAsset(video, "mp4");
+
+                            if (file) {
+                                pathUrls.push(`http://${req.headers.host}/storages/${file}`);
+                            }
+
+                        }
+                        console.log("Finish: ", pathUrls)
+                        if (pathUrls.length > 0) {
+                            TASK_MANAGERS[taskId] = {
+                                success: true,
+                                code: "success",
+                                msg: "Video generated successfully",
+                                data: pathUrls,
+                                step: index
+                            };
+                            isSuccess = true
+                        } else {
+                            TASK_MANAGERS[taskId] = {
+                                success: false,
+                                code: "error",
+                                msg: "Video generation failed"
+                            };
+
+                        }
+                        return
+                    }
+                } catch (err) {
+                    console.log(err)
+                    const errText = JSON.stringify(err)
+                    TASK_MANAGERS[taskId] = {
+                        success: false,
+                        code: "error",
+                        msg: "Video generation error",
+                        error: errText
+                    };
+                    console.error("generate-video error:", err);
+
+                } finally {
+                    console.log("Clear")
+                    // Finish task
+                    if (accNew && accNew?.id) {
+                        setTimeout(() => {
+                            AccountStore.decProcessing(accNew.id)
+                            AccountStore.incDone(accNew.id)
+                        }, 10 * 1000)
+                    }
+                    systemReport.processing--
+
+                    if (isSuccess) {
+                        systemReport.success++
+                    } else {
+                        systemReport.error++
+                    }
+
+                }
+            }
+
+
+        })();
+        res.json({
+            success: true,
+            taskId,
+            msg: "Task created successfully"
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+
+    }
+}
+
+const generateImage = async (req, res) => {
+    try {
+
+        const { promptText, imageUrls, numImages } = req.body;
+
+        if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
+
+            return res.status(400).json({
+                success: false,
+                msg: "imageUrls must contain at least one image."
+            });
+
+        }
+
+        const accNew = await AccountStore.getNext()
+        const grok = new APIClientGrok({
+            MY_COOKIE: accNew?.cookie,
+            chromeVersion: chromeData.version,
+            userAgent: chromeData.userAgent,
+            proxyHttp: accNew.proxy
+        });
+
+        const taskId = randomUUID();
+        TASK_MANAGERS[taskId] = {
+            success: false,
+            code: "pending",
+            msg: "Image generation is in progress"
+        };
+
+        (async () => {
+
+            try {
+
+                const images = await grok.generateImage({
+                    promptText,
+                    imageUrls,
+                    numImages: numImages || 1
+                });
+
+                const pathUrls = [];
+
+                for (const image of images) {
+
+                    const file = await grok.downloadAsset(image);
+
+                    if (file) {
+                        pathUrls.push(`http://${req.headers.host}/storages/${file}`);
+                    }
+
+                }
+
+                if (pathUrls.length > 0) {
+                    TASK_MANAGERS[taskId] = {
+                        success: true,
+                        code: "success",
+                        msg: "Images generated successfully",
+                        data: pathUrls
+                    };
+
+                } else {
+
+                    TASK_MANAGERS[taskId] = {
+                        success: false,
+                        code: "error",
+                        msg: "Image generation failed"
+                    };
+
+                }
+
+            } catch (err) {
+                TASK_MANAGERS[taskId] = {
+                    success: false,
+                    code: "error",
+                    msg: "Image generation error",
+                    error: err.message
+                };
+
+                console.error("generate-image error:", err);
+
+            } finally {
+                clearUuid(taskId);
+            }
+
+        })();
+
+        res.json({
+            success: true,
+            taskId,
+            msg: "Task created successfully"
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+
+    }
+}
+
+const getTask = async (req, res) => {
+    const taskId = req.query.taskId;
+
+    if (!taskId) {
+
+        return res.status(400).json({
+            success: false,
+            msg: "taskId is required"
+        });
+
+    }
+
+    const task = TASK_MANAGERS[taskId];
+
+    if (!task) {
+
+        return res.status(404).json({
+            success: false,
+            msg: "Task not found"
+        });
+
+    }
+
+    res.json({
+        success: true,
+        taskId,
+        ...task
+    });
+}
+
+
+module.exports = {
+    generateVideo,
+    getTask,
+    generateImage
+}

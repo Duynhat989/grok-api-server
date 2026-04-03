@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý tài khoản XLSX</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+            margin-bottom: 16px;
+        }
+
+        .drop-zone {
+            border: 2.5px dashed #94a3b8;
+            border-radius: 10px;
+            padding: 36px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all .2s;
+            background: #f8fafc;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .drop-zone svg {
+            margin-bottom: 10px;
+        }
+
+        .drop-zone p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .drop-zone span {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 9px 18px;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: opacity .15s;
+        }
+
+        .btn:hover {
+            opacity: .85;
+        }
+
+        .btn:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .btn-export {
+            background: #10b981;
+            color: #fff;
+        }
+
+        .btn-clear {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .count {
+            margin-left: auto;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .summary {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .sum-badge {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .sum-live {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .sum-die {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .sum-active {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            max-height: 62vh;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+        }
+
+        thead th {
+            background: #1e293b;
+            color: #fff;
+            padding: 10px 12px;
+            text-align: left;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        tbody tr {
+            transition: background .1s;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        tbody tr:hover {
+            background: #eff6ff;
+        }
+
+        tbody tr.row-die {
+            opacity: .5;
+        }
+
+        td {
+            padding: 7px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: middle;
+        }
+
+        td.cookie-cell {
+            max-width: 280px;
+            font-size: 11px;
+            color: #555;
+            word-break: break-all;
+        }
+
+        td.email-cell {
+            font-weight: 500;
+            color: #1d4ed8;
+            white-space: nowrap;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #9ca3af;
+            padding: 50px;
+            font-size: 14px;
+        }
+
+        /* Live/Die clickable badge */
+        .badge-live {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+            border-radius: 20px;
+            padding: 3px 11px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .badge-die {
+            display: inline-block;
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+            border-radius: 20px;
+            padding: 3px 11px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .badge-unknown {
+            display: inline-block;
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+            border-radius: 20px;
+            padding: 3px 11px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        /* Toggle switch */
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #d1d5db;
+            border-radius: 22px;
+            transition: .25s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: .25s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+        }
+
+        input:checked+.slider {
+            background: #3b82f6;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(18px);
+        }
+
+        .btn-del {
+            background: #fee2e2;
+            color: #ef4444;
+            border: 1px solid #fca5a5;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-del:hover {
+            background: #fecaca;
+        }
+
+        .file-info {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+
+        .file-badge {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .hint {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>📊 Quản lý tài khoản XLSX</h1>
+
+    <!-- Import -->
+    <div class="card">
+        <h3 style="margin-bottom:14px;font-size:15px;color:#374151">📥 Import file XLSX</h3>
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <p><span>Chọn file XLSX</span> hoặc kéo thả vào đây</p>
+            <p style="font-size:12px;color:#9ca3af;margin-top:4px">Hỗ trợ: .xlsx, .xls</p>
+        </div>
+        <input type="file" id="file-input" accept=".xlsx,.xls" onchange="importFile(this)">
+        <p class="file-info" id="file-info"></p>
+        <p class="hint">Cột <b>status</b>: ghi "live" hoặc "die" | Cột <b>active</b>: ghi "true" hoặc "false" (có thể bỏ
+            trống)</p>
+    </div>
+
+    <!-- Toolbar + Summary -->
+    <div class="card" style="padding:14px 20px">
+        <div class="toolbar">
+            <button class="btn btn-export" id="btn-export" onclick="exportXLSX()" disabled>⬇️ Xuất XLSX</button>
+            <button class="btn btn-clear" id="btn-clear" onclick="clearAll()" disabled>🗑️ Xóa tất cả</button>
+            <span class="count" id="count-label">0 tài khoản</span>
+        </div>
+        <div class="summary" id="summary" style="display:none">
+            <span class="sum-badge sum-live" id="s-live">🟢 Live: 0</span>
+            <span class="sum-badge sum-die" id="s-die">🔴 Die: 0</span>
+            <span class="sum-badge sum-active" id="s-active">✅ Hoạt động: 0</span>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card" style="padding:0;overflow:hidden">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Email</th>
+                        <th>Password</th>
+                        <th>Cookie</th>
+                        <th>Proxy</th>
+                        <th>Provider</th>
+                        <th>Live / Die</th>
+                        <th>Hoạt động</th>
+                        <th>Xóa</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <tr>
+                        <td colspan="9" class="no-data">📂 Import file XLSX để xem dữ liệu</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="time.js"></script>
+</body>
+
+</html>
