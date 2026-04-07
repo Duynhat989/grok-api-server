@@ -25,14 +25,24 @@ class APIClientGrok {
     }) {
         try {
             let url = await this.client.uploadFile(imageUrl);
-            console.log(url)
-            const fileUri = `https://assets.grok.com/${url?.fileUri}`
             if (!url?.fileUri) {
-                return false
+                return {
+                    success: false,
+                    error: "uploadFile failed",
+                    details: JSON.stringify(url)
+                }
             }
-            return true
+            const fileUri = `https://assets.grok.com/${url?.fileUri}`
+            return {
+                success: true,
+                fileUri: fileUri
+            }
         } catch (error) {
-            return false
+            console.error("❌ isCheckLive error:", error);
+            return {
+                success: false,
+                error: error.message
+            }
         }
     }
     async generateImage({
@@ -121,8 +131,8 @@ class APIClientGrok {
             let fileId = undefined
             if (imageUrl && imageUrl.length > 4) {
                 url = await this.client.uploadFile(imageUrl);
+                console.log(url)
                 if (!url?.fileUri) {
-                    console.log(url)
                     return {
                         success: false,
                         error: JSON.stringify(url),

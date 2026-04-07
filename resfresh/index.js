@@ -2,8 +2,7 @@ const APIClientGrok = require('../src/modules/APIClientGrok');
 const AccountStore = require('../src/services/AccountStore');
 const ChromeLauncher = require('./chrome/ChromeLauncher');
 const { getStringBase64 } = require('./data');
-const fs = require('fs');
-const path = require('path');
+const grokDataStore = require('../src/services/GrokDataStore');
 
 
 
@@ -96,54 +95,98 @@ const getNewCookie = async ({
         proxy
     }
 };
-let dataGrok = []
-const DATA_PATH = path.join(__dirname, '../data/data.json');
-function loadData() {
-    try {
-        console.log(DATA_PATH)
-        if (!fs.existsSync(DATA_PATH)) {
-            fs.writeFileSync(DATA_PATH, JSON.stringify([]));
+
+const cookieLiveDie = async ({
+    cookie,
+    proxy
+}) => {
+    const imageUrl = await getStringBase64()
+    const grok = new APIClientGrok({
+        MY_COOKIE: cookie,
+        chromeVersion: chromeData.version,
+        userAgent: chromeData.userAgent,
+        proxyHttp: proxy
+    });
+    const isLive = await grok.isCheckLive({
+        imageUrl
+    })
+    console.log(isLive)
+    if (isLive && JSON.stringify(isLive).includes("Unauthorized")) {
+        console.log("---Unauthorized")
+        // 
+        return {
+            success: false,
+            details: "Unauthorized",
+            cookie: cookie,
+            proxy
         }
-        const raw = fs.readFileSync(DATA_PATH);
-        dataGrok = JSON.parse(raw);
-        console.log("✅ Loaded data:", dataGrok.length, "accounts");
-    } catch (err) {
-        console.error("❌ Load data error:", err);
-        dataGrok = [];
     }
+    return {
+        success: !!isLive?.success,
+        cookie: cookie,
+        proxy
+    }
+};
+let dataGrok = []
+function loadData() {
+    dataGrok = grokDataStore.readAccounts();
+    console.log("✅ Loaded data:", dataGrok.length, "accounts");
 }
 const CRON_JOB_REFRESH = async () => {
     const AUTO_REFRESH_COOKIE = process.env.AUTO_REFRESH_COOKIE
-    if(AUTO_REFRESH_COOKIE !== "YES"){
+    if (AUTO_REFRESH_COOKIE !== "YES") {
         console.log("AUTO_REFRESH_COOKIE OFF")
         return
     }
     while (true) {
         // Xử lý lại dữ liệu
         loadData()
-        console.log("Reload Grok Json")
+        console.log("🔄 Starting refresh cycle. Total accounts:", dataGrok.length)
+        let rowIndex = 0
         for (const grokItem of dataGrok) {
-            console.log(grokItem.email)
-            if (!AccountStore.has(grokItem.id) && (grokItem.active == true)) {
-                const isTrue = await getNewCookie({
-                    profile: grokItem.email.split('@')[0],
-                    cookie: grokItem.cookie,
-                    proxy: grokItem.proxy,
+            rowIndex++
+            const latestItem = grokDataStore.getAccountById(grokItem.id);
+            if (!latestItem) {
+                console.log("Account deleted, skip:", `${rowIndex}/${dataGrok.length}`)
+                await delay(50)
+                continue
+            }
+
+            if (!AccountStore.has(latestItem.id) && latestItem.active === true) {
+                console.log(`Checking cookie for account ${latestItem.id} (${rowIndex}/${dataGrok.length})...`);
+                const isLive = await cookieLiveDie({
+                    cookie: latestItem.cookie,
+                    proxy: latestItem.proxy,
                 })
-                if (isTrue && isTrue?.success) {
+                if (isLive && isLive?.success) {
                     AccountStore.add({
-                        id: grokItem.id,
+                        id: latestItem.id,
                         processing: 0,
                         done: 0,
-                        cookie: isTrue.cookie,
-                        proxy: isTrue.proxy
+                        cookie: isLive.cookie,
+                        proxy: isLive.proxy
                     })
+
+                    grokDataStore.updateAccountById(latestItem.id, {
+                        cookie: isLive.cookie || latestItem.cookie,
+                        proxy: isLive.proxy || latestItem.proxy,
+                        status: 'live',
+                        active: true
+                    })
+
                     const list = AccountStore.list()
                     console.log(list.length)
+                } else {
+                    console.log("Cookie is dead, skip: ", `${rowIndex}/${dataGrok.length}`)
+                    grokDataStore.updateAccountById(latestItem.id, {
+                        active: false,
+                        status: 'die'
+                    })
                 }
+                await delay(100)
             }
         }
-        await delay(10 * 1000)
+        await delay(20 * 1000)
 
     }
 }

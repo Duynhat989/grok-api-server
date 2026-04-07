@@ -109,7 +109,7 @@ class AccountStore {
         let best = null;
 
         for (const acc of this.accounts.values()) {
-            if (acc.processing > 3) {
+            if (acc.processing > 40) {
                 continue;
             }
             if (!best) {

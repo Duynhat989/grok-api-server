@@ -4,7 +4,7 @@ const { randomUUID } = require("crypto");
 const AccountStore = require("../services/AccountStore");
 const { error } = require("console");
 const TASK_MANAGERS = {};
-const RETRY = 20
+const RETRY = 40
 const clearUuid = (uuid) => {
     console.log("TaskId: ", uuid)
     setTimeout(() => {
@@ -44,6 +44,8 @@ const generateVideo = async (req, res) => {
                         code: "error",
                         msg: "max retry"
                     };
+                    systemReport.error++
+                    console.log("Error: Max retry reached")
                     return false
                 }
 
@@ -74,7 +76,6 @@ const generateVideo = async (req, res) => {
                         resolutionName: resolutionName || "720p"
                     });
                     if (!resVideo.success) {
-                        console.log(resVideo)
                         if (JSON.stringify(resVideo).includes("Too Many Requests")) {
                             console.log("---RETRY")
                             continue
@@ -84,8 +85,27 @@ const generateVideo = async (req, res) => {
                             AccountStore.remove(accNew.id)
                             continue
                         }
+                        if (JSON.stringify(resVideo).includes("Forbidden")) {
+                            console.log("---Forbidden, remove acccount")
+                            AccountStore.remove(accNew.id)
+                            continue
+                        }
+                        if (JSON.stringify(resVideo).includes("ended before receiving CONNECT response")) {
+                            console.log("---receiving CONNECT")
+                            AccountStore.remove(accNew.id)
+                            continue
+                        }
+                        if (JSON.stringify(resVideo).includes("Proxy Authentication Required")) {
+                            console.log("---Authentication Required")
+                            AccountStore.remove(accNew.id)
+                            continue
+                        }
                         if (JSON.stringify(resVideo).includes("reason: socket hang up")) {
                             console.log("---Hangup")
+                            continue
+                        }
+                        if (JSON.stringify(resVideo).includes("ECONNRESET")) {
+                            console.log("---ECONNRESET")
                             continue
                         }
                         else {
@@ -94,6 +114,7 @@ const generateVideo = async (req, res) => {
                                 code: "error",
                                 msg: resVideo.error
                             };
+                            console.log("Error: ", resVideo)
                             systemReport.error++
                             return false
                         }
@@ -124,6 +145,7 @@ const generateVideo = async (req, res) => {
                                 code: "error",
                                 msg: "Video generation failed"
                             };
+                            console.log("Error: Video generation failed")
                             systemReport.error++
                         }
                         return false

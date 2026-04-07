@@ -1,101 +1,48 @@
-const fs = require('fs');
-const path = require('path');
-const DATA_PATH = path.join(__dirname, '../../data/data.json');
-
-// Biến global chứa dữ liệu
-let dataGrok = [];
+const grokDataStore = require('../services/GrokDataStore');
 
 // ===== LOAD DATA KHI START =====
 function loadData() {
-    try {
-        if (!fs.existsSync(DATA_PATH)) {
-            fs.writeFileSync(DATA_PATH, JSON.stringify([]));
-        }
-        const raw = fs.readFileSync(DATA_PATH);
-        dataGrok = JSON.parse(raw);
-        console.log("✅ Loaded data:", dataGrok.length, "accounts");
-    } catch (err) {
-        console.error("❌ Load data error:", err);
-        dataGrok = [];
-    }
+    const dataGrok = grokDataStore.readAccounts();
+    console.log("✅ Loaded data:", dataGrok.length, "accounts");
+    return dataGrok;
 }
-
-// ===== SAVE DATA =====
-function saveData() {
-    try {
-        fs.writeFileSync(DATA_PATH, JSON.stringify(dataGrok, null, 2));
-    } catch (err) {
-        console.error("❌ Save data error:", err);
-    }
-}
-
-// ===== AUTO SAVE MỖI 10 GIÂY =====
-setInterval(() => {
-    saveData();
-}, 10000);
 
 // ===== ADD ACCOUNT =====
 function addAccount(data) {
-    const newAcc = {
-        id: Date.now(),
-        email: data.email || "",
-        password: data.password || "",
-        cookie: data.cookie || "",
-        proxy: data.proxy || "",
-        provider: data.provider || "grok",
-        status: "live",
-        active: true
-    };
-
-    dataGrok.push(newAcc);
-    return newAcc;
+    return grokDataStore.addAccount(data);
 }
 
 // ===== UPDATE ACCOUNT =====
 function updateAccount(id, newData) {
-    const index = dataGrok.findIndex(acc => acc.id == id);
-    if (index === -1) return null;
-
-    dataGrok[index] = {
-        ...dataGrok[index],
-        ...newData
-    };
-
-    return dataGrok[index];
+    return grokDataStore.updateAccountById(id, newData);
 }
 
 // ===== DELETE ACCOUNT =====
 function deleteAccount(id) {
-    const index = dataGrok.findIndex(acc => acc.id == id);
-    if (index === -1) return false;
-
-    dataGrok.splice(index, 1);
-    return true;
+    return grokDataStore.deleteAccountById(id);
 }
 
 // ===== GET ALL =====
 function getAllAccounts() {
-    return dataGrok;
+    return grokDataStore.readAccounts();
 }
 
 // ===== TOGGLE ACTIVE =====
 function toggleActive(id) {
-    const acc = dataGrok.find(a => a.id == id);
-    if (!acc) return null;
-
-    acc.active = !acc.active;
-    return acc;
+    return grokDataStore.updateAccountById(id, current => ({
+        active: !current.active
+    }));
 }
 
 // ===== SET LIVE/DIE =====
 function setStatus(id, status) {
-    const acc = dataGrok.find(a => a.id == id);
-    if (!acc) return null;
-
-    acc.status = status; // "live" | "die"
-    return acc;
+    return grokDataStore.updateAccountById(id, {
+        status: status || ''
+    });
 }
-loadData()
+
+loadData();
+
 // ===== EXPORT =====
 module.exports = {
     loadData,

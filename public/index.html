@@ -7,6 +7,22 @@
     <title>Quản lý tài khoản XLSX</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        :root {
+            --bg-start: #eef4ff;
+            --bg-end: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.94);
+            --card-border: rgba(148, 163, 184, 0.18);
+            --text-main: #0f172a;
+            --text-soft: #64748b;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.08);
+            --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.06);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -14,59 +30,123 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background: #f0f2f5;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 0, transparent 28%),
+                linear-gradient(135deg, var(--bg-start), var(--bg-end));
+            color: var(--text-main);
             min-height: 100vh;
-            padding: 20px;
+            padding: 24px;
         }
 
-        h1 {
-            text-align: center;
-            color: #1e293b;
-            margin-bottom: 20px;
-            font-size: 22px;
+        .app-shell {
+            width: 100%;
         }
 
         .card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 14px;
+        }
+
+        .section-heading {
             margin-bottom: 16px;
         }
 
+        .section-heading h2 {
+            font-size: 16px;
+            line-height: 1.25;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .section-heading p {
+            font-size: 11px;
+            color: var(--text-soft);
+            line-height: 1.45;
+        }
+
+        .section-heading.compact {
+            margin-bottom: 5px;
+        }
+
+        .table-heading {
+            padding: 20px 20px 0;
+            margin-bottom: 12px;
+        }
+
+        .upload-card {
+            width: 260px;
+            flex: 0 0 260px;
+            display: inline-flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 0;
+            border: none;
+            box-shadow: none;
+            backdrop-filter: none;
+            background: transparent;
+            border-radius: 0;
+        }
+
         .drop-zone {
-            border: 2.5px dashed #94a3b8;
+            border: 1px dashed #a5b4fc;
             border-radius: 10px;
-            padding: 36px 20px;
+            min-height: 58px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             text-align: center;
             cursor: pointer;
-            transition: all .2s;
-            background: #f8fafc;
+            transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+            background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);
         }
 
         .drop-zone:hover,
         .drop-zone.drag-over {
-            border-color: #3b82f6;
-            background: #eff6ff;
+            border-color: var(--primary);
+            background: linear-gradient(135deg, #eff6ff 0%, #e0edff 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.10);
         }
 
         .drop-zone svg {
-            margin-bottom: 10px;
+            margin-bottom: 2px;
+            width: 18px;
+            height: 18px;
         }
 
         .drop-zone p {
-            color: #64748b;
-            font-size: 14px;
+            color: var(--text-soft);
+            font-size: 10px;
+            line-height: 1.25;
         }
 
         .drop-zone span {
-            color: #3b82f6;
-            font-weight: 600;
+            color: var(--primary);
+            font-weight: 700;
         }
 
         #file-input {
             display: none;
+        }
+
+        .top-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .toolbar-card {
+            flex: 1;
+            min-width: 0;
         }
 
         .toolbar {
@@ -76,78 +156,145 @@
             align-items: center;
         }
 
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 6px;
+            border-radius: 14px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .filter-label {
+            font-size: 12px;
+            color: var(--text-soft);
+            font-weight: 700;
+            padding: 0 4px;
+        }
+
         .btn {
-            padding: 9px 18px;
+            padding: 10px 14px;
             border: none;
-            border-radius: 7px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: opacity .15s;
+            font-size: 12.5px;
+            font-weight: 700;
+            letter-spacing: .01em;
+            transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
         }
 
         .btn:hover {
-            opacity: .85;
+            transform: translateY(-1px);
         }
 
         .btn:disabled {
-            opacity: .4;
+            opacity: .45;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .btn-export {
-            background: #10b981;
+            background: linear-gradient(135deg, #10b981, #059669);
             color: #fff;
         }
 
         .btn-clear {
-            background: #ef4444;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
             color: #fff;
+        }
+
+        .btn-select {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #fff;
+        }
+
+        .btn-delete-selected {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #fff;
+        }
+
+        .btn-delete-die {
+            background: linear-gradient(135deg, #b91c1c, #991b1b);
+            color: #fff;
+        }
+
+        .filter-btn {
+            background: #fff;
+            color: #334155;
+            padding: 8px 12px;
+            box-shadow: none;
+            border: 1px solid #dbe3f0;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .filter-select {
+            padding: 9px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 12px;
+            color: #334155;
+            background: #fff;
+            outline: none;
         }
 
         .count {
             margin-left: auto;
-            background: #e0e7ff;
-            color: #3730a3;
-            padding: 5px 14px;
-            border-radius: 20px;
+            background: linear-gradient(135deg, #eef2ff, #dbeafe);
+            color: #1e3a8a;
+            padding: 8px 14px;
+            border-radius: 999px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
+            border: 1px solid #bfdbfe;
         }
 
         .summary {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            margin-top: 12px;
+            margin-top: 14px;
         }
 
         .sum-badge {
-            padding: 4px 14px;
-            border-radius: 20px;
+            padding: 7px 14px;
+            border-radius: 999px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
+            border: 1px solid transparent;
         }
 
         .sum-live {
-            background: #dcfce7;
-            color: #15803d;
+            background: #ecfdf5;
+            color: #047857;
+            border-color: #a7f3d0;
         }
 
         .sum-die {
-            background: #fee2e2;
-            color: #dc2626;
+            background: #fef2f2;
+            color: #b91c1c;
+            border-color: #fecaca;
         }
 
         .sum-active {
-            background: #dbeafe;
+            background: #eff6ff;
             color: #1d4ed8;
+            border-color: #bfdbfe;
         }
 
         .table-wrap {
             overflow-x: auto;
             max-height: 62vh;
             overflow-y: auto;
+            border-top: 1px solid #eef2ff;
         }
 
         table {
@@ -157,107 +304,129 @@
         }
 
         thead th {
-            background: #1e293b;
-            color: #fff;
-            padding: 10px 12px;
+            background: #f8fafc;
+            color: #475569;
+            padding: 12px 12px;
             text-align: left;
             white-space: nowrap;
             position: sticky;
             top: 0;
             z-index: 1;
+            font-size: 11px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-bottom: 1px solid #e2e8f0;
         }
 
         tbody tr {
-            transition: background .1s;
+            transition: background .15s ease;
         }
 
         tbody tr:nth-child(even) {
-            background: #f8fafc;
+            background: #fbfdff;
         }
 
         tbody tr:hover {
-            background: #eff6ff;
+            background: #f2f7ff;
         }
 
         tbody tr.row-die {
-            opacity: .5;
+            opacity: .72;
+            background: #fff7f7;
         }
 
         td {
-            padding: 7px 12px;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 12px;
+            border-bottom: 1px solid #eef2f7;
             vertical-align: middle;
+            color: #334155;
         }
 
         td.cookie-cell {
-            max-width: 280px;
-            font-size: 11px;
-            color: #555;
-            word-break: break-all;
+            min-width: 280px;
+            max-width: 360px;
+            color: #64748b;
         }
 
         td.email-cell {
-            font-weight: 500;
-            color: #1d4ed8;
+            font-weight: 700;
+            color: var(--primary-dark);
             white-space: nowrap;
+        }
+
+        .readonly-field {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #dbe3f0;
+            border-radius: 10px;
+            background: #f8fafc;
+            color: #334155;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .readonly-field:focus {
+            border-color: #93c5fd;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
+
+        .readonly-field.short {
+            min-width: 120px;
+        }
+
+        .readonly-field.long {
+            min-width: 220px;
+            font-size: 11px;
+            font-family: Consolas, "Courier New", monospace;
         }
 
         .no-data {
             text-align: center;
-            color: #9ca3af;
+            color: #94a3b8;
             padding: 50px;
             font-size: 14px;
         }
 
-        /* Live/Die clickable badge */
-        .badge-live {
+        .badge-live,
+        .badge-die,
+        .badge-unknown {
             display: inline-block;
-            background: #dcfce7;
-            color: #15803d;
-            border: 1px solid #86efac;
-            border-radius: 20px;
-            padding: 3px 11px;
-            font-size: 11px;
-            font-weight: 700;
+            border-radius: 999px;
+            padding: 5px 12px;
+            font-size: 10.5px;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
             cursor: pointer;
             user-select: none;
             white-space: nowrap;
+            border: 1px solid transparent;
+        }
+
+        .badge-live {
+            background: #dcfce7;
+            color: #15803d;
+            border-color: #86efac;
         }
 
         .badge-die {
-            display: inline-block;
             background: #fee2e2;
             color: #dc2626;
-            border: 1px solid #fca5a5;
-            border-radius: 20px;
-            padding: 3px 11px;
-            font-size: 11px;
-            font-weight: 700;
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
+            border-color: #fca5a5;
         }
 
         .badge-unknown {
-            display: inline-block;
             background: #f3f4f6;
             color: #6b7280;
-            border: 1px solid #d1d5db;
-            border-radius: 20px;
-            padding: 3px 11px;
-            font-size: 11px;
-            font-weight: 700;
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
+            border-color: #d1d5db;
         }
 
-        /* Toggle switch */
         .toggle {
             position: relative;
             display: inline-block;
-            width: 40px;
-            height: 22px;
+            width: 42px;
+            height: 24px;
         }
 
         .toggle input {
@@ -269,30 +438,27 @@
         .slider {
             position: absolute;
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #d1d5db;
-            border-radius: 22px;
+            inset: 0;
+            background: #d6deea;
+            border-radius: 999px;
             transition: .25s;
         }
 
         .slider:before {
             position: absolute;
             content: "";
-            height: 16px;
-            width: 16px;
+            height: 18px;
+            width: 18px;
             left: 3px;
             bottom: 3px;
             background: #fff;
             border-radius: 50%;
             transition: .25s;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, .16);
         }
 
         input:checked+.slider {
-            background: #3b82f6;
+            background: linear-gradient(135deg, #60a5fa, #2563eb);
         }
 
         input:checked+.slider:before {
@@ -300,86 +466,296 @@
         }
 
         .btn-del {
-            background: #fee2e2;
-            color: #ef4444;
-            border: 1px solid #fca5a5;
-            padding: 4px 10px;
+            background: #fff5f5;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+            padding: 6px 10px;
             font-size: 12px;
-            border-radius: 5px;
+            font-weight: 700;
+            border-radius: 10px;
             cursor: pointer;
         }
 
         .btn-del:hover {
-            background: #fecaca;
+            background: #fee2e2;
         }
 
         .file-info {
-            font-size: 12px;
-            color: #6b7280;
-            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-soft);
+            margin-top: 2px;
         }
 
         .file-badge {
             display: inline-block;
-            background: #dcfce7;
-            color: #15803d;
-            border-radius: 4px;
-            padding: 1px 7px;
+            background: #ecfdf5;
+            color: #047857;
+            border-radius: 999px;
+            padding: 3px 9px;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
+            border: 1px solid #a7f3d0;
         }
 
         .hint {
-            font-size: 11px;
-            color: #9ca3af;
-            margin-top: 6px;
+            font-size: 9.5px;
+            color: #94a3b8;
+            margin-top: 1px;
+            line-height: 1.35;
+            max-width: 560px;
+        }
+
+        .loading-panel {
+            display: none;
+            margin-top: 14px;
+            padding: 14px 16px;
+            border: 1px solid #bfdbfe;
+            background: linear-gradient(135deg, #f8fbff 0%, #eff6ff 100%);
+            border-radius: 16px;
+        }
+
+        .loading-panel.show {
+            display: block;
+        }
+
+        .loading-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .loading-meta {
+            flex: 1;
+        }
+
+        .loading-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .loading-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+
+        .loading-count {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+            background: #dbeafe;
+            padding: 3px 8px;
+            border-radius: 999px;
+        }
+
+        .loading-detail {
+            font-size: 12px;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .loading-spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid #bfdbfe;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: #dbeafe;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #2563eb, #10b981);
+            transition: width .2s ease;
+        }
+
+        .progress-fill.indeterminate {
+            animation: pulseProgress 1s ease-in-out infinite;
+        }
+
+        .loading-cell {
+            padding: 28px 12px;
+            text-align: center;
+        }
+
+        .loading-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .loading-inline .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border-width: 2px;
+        }
+
+        .app-busy .drop-zone,
+        .app-busy .toolbar,
+        .app-busy .table-wrap {
+            pointer-events: none;
+        }
+
+        .app-busy .drop-zone,
+        .app-busy .toolbar {
+            opacity: .8;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulseProgress {
+
+            0%,
+            100% {
+                opacity: .65;
+                width: 35%;
+            }
+
+            50% {
+                opacity: 1;
+                width: 60%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 14px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .top-row {
+                flex-direction: column;
+            }
+
+            .toolbar-card,
+            .upload-card {
+                width: 100%;
+                flex: 1 1 auto;
+            }
+
+            .loading-head,
+            .toolbar {
+                align-items: stretch;
+            }
+
+            .count {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 
 <body>
+    <div class="app-shell">
 
-    <h1>📊 Quản lý tài khoản XLSX</h1>
+        <div class="top-row">
+            <!-- Toolbar + Summary -->
+            <div class="card toolbar-card" style="padding:14px 20px">
+            <div class="section-heading compact">
+                <h2>Thao tác nhanh</h2>
+                <p>Lọc, chọn và xử lý dữ liệu trực tiếp trên bảng theo thời gian thực.</p>
+            </div>
+            <div class="toolbar">
+                <button class="btn btn-export" id="btn-export" onclick="exportXLSX()" disabled>Xuất XLSX</button>
+                <button class="btn btn-export" id="btn-export-die" onclick="exportDieXLSX()" disabled>Xuất tài khoản die</button>
+                <button class="btn btn-clear" id="btn-clear" onclick="clearAll()" disabled>Xóa tất cả</button>
+                <button class="btn btn-select" id="btn-select-all" onclick="selectAllVisible()" disabled>Chọn tất cả</button>
+                <button class="btn btn-select" id="btn-clear-selection" onclick="clearSelection()" disabled>Bỏ chọn</button>
+                <button class="btn btn-delete-selected" id="btn-delete-selected" onclick="deleteSelected()" disabled>Xóa đã chọn</button>
+                <button class="btn btn-delete-die" id="btn-delete-die" onclick="deleteDieAccounts()" disabled>Xóa tài khoản die</button>
 
-    <!-- Import -->
-    <div class="card">
-        <h3 style="margin-bottom:14px;font-size:15px;color:#374151">📥 Import file XLSX</h3>
-        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            <p><span>Chọn file XLSX</span> hoặc kéo thả vào đây</p>
-            <p style="font-size:12px;color:#9ca3af;margin-top:4px">Hỗ trợ: .xlsx, .xls</p>
+                <div class="filter-group">
+                    <span class="filter-label">Lọc:</span>
+                    <button class="btn filter-btn active" data-status-filter="all" onclick="setStatusFilter('all')">Tất cả</button>
+                    <button class="btn filter-btn" data-status-filter="live" onclick="setStatusFilter('live')">Live</button>
+                    <button class="btn filter-btn" data-status-filter="die" onclick="setStatusFilter('die')">Die</button>
+                    <select id="provider-filter" class="filter-select" onchange="setProviderFilter(this.value)">
+                        <option value="all">Tất cả Provider</option>
+                    </select>
+                </div>
+
+                <span class="count" id="count-label">0 tài khoản</span>
+            </div>
+            <div class="summary" id="summary" style="display:none">
+                <span class="sum-badge sum-live" id="s-live">Live: 0</span>
+                <span class="sum-badge sum-die" id="s-die">Die: 0</span>
+                <span class="sum-badge sum-active" id="s-active">Hoạt động: 0</span>
+                <span class="sum-badge sum-active" id="s-selected">Đã chọn: 0</span>
+            </div>
+
+            <div class="loading-panel" id="loading-panel">
+                <div class="loading-row">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-meta">
+                        <div class="loading-head">
+                            <span class="loading-title" id="loading-title">Đang tải dữ liệu...</span>
+                            <span class="loading-count" id="loading-count">0/0</span>
+                        </div>
+                        <div class="loading-detail" id="loading-detail">Vui lòng chờ...</div>
+                        <div class="progress-track">
+                            <div class="progress-fill indeterminate" id="loading-progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <input type="file" id="file-input" accept=".xlsx,.xls" onchange="importFile(this)">
-        <p class="file-info" id="file-info"></p>
-        <p class="hint">Cột <b>status</b>: ghi "live" hoặc "die" | Cột <b>active</b>: ghi "true" hoặc "false" (có thể bỏ
-            trống)</p>
-    </div>
 
-    <!-- Toolbar + Summary -->
-    <div class="card" style="padding:14px 20px">
-        <div class="toolbar">
-            <button class="btn btn-export" id="btn-export" onclick="exportXLSX()" disabled>⬇️ Xuất XLSX</button>
-            <button class="btn btn-clear" id="btn-clear" onclick="clearAll()" disabled>🗑️ Xóa tất cả</button>
-            <span class="count" id="count-label">0 tài khoản</span>
+            <!-- Import -->
+            <div class="upload-card">
+                <div class="section-heading compact">
+                    <h2>Nhập file XLSX</h2>
+                    <p>Thay bản cũ nếu email đã tồn tại.</p>
+                </div>
+                <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <p><span>Chọn file XLSX</span></p>
+                    <p style="font-size:10px;color:#9ca3af;margin-top:2px">.xlsx, .xls</p>
+                </div>
+                <input type="file" id="file-input" accept=".xlsx,.xls" onchange="importFile(this)">
+                <p class="file-info" id="file-info"></p>
+                <p class="hint">Email trùng sẽ được thay bằng dữ liệu mới.</p>
+            </div>
         </div>
-        <div class="summary" id="summary" style="display:none">
-            <span class="sum-badge sum-live" id="s-live">🟢 Live: 0</span>
-            <span class="sum-badge sum-die" id="s-die">🔴 Die: 0</span>
-            <span class="sum-badge sum-active" id="s-active">✅ Hoạt động: 0</span>
-        </div>
-    </div>
 
-    <!-- Table -->
-    <div class="card" style="padding:0;overflow:hidden">
-        <div class="table-wrap">
+        <!-- Table -->
+        <div class="card" style="padding:0;overflow:hidden">
+            <div class="section-heading table-heading">
+                <h2>Danh sách tài khoản</h2>
+                <p>Theo dõi trạng thái, hoạt động và thông tin chi tiết của từng tài khoản. Các dữ liệu dài được hiển thị dưới dạng ô chỉ đọc để dễ xem và sao chép.</p>
+            </div>
+            <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
                         <th>#</th>
+                        <th>Chọn</th>
                         <th>Email</th>
                         <th>Password</th>
                         <th>Cookie</th>
@@ -392,12 +768,13 @@
                 </thead>
                 <tbody id="tbody">
                     <tr>
-                        <td colspan="9" class="no-data">📂 Import file XLSX để xem dữ liệu</td>
+                        <td colspan="10" class="no-data">Chọn file XLSX để hiển thị dữ liệu</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
+</div>
 
     <script src="time.js"></script>
 </body>
