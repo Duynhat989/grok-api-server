@@ -4,7 +4,22 @@ const { randomUUID } = require("crypto");
 const AccountStore = require("../services/AccountStore");
 const { error } = require("console");
 const TASK_MANAGERS = {};
+const CONNECT_ERROR_COUNTS = new Map();
 const RETRY = 40
+const CONNECT_ERROR_LIMIT = 3
+
+const increaseConnectErrorCount = (accountId) => {
+    const key = String(accountId || '');
+    const nextCount = (CONNECT_ERROR_COUNTS.get(key) || 0) + 1;
+    CONNECT_ERROR_COUNTS.set(key, nextCount);
+    return nextCount;
+};
+
+const resetConnectErrorCount = (accountId) => {
+    if (!accountId) return;
+    CONNECT_ERROR_COUNTS.delete(String(accountId));
+};
+
 const clearUuid = (uuid) => {
     console.log("TaskId: ", uuid)
     setTimeout(() => {
@@ -75,36 +90,46 @@ const generateVideo = async (req, res) => {
                         videoLength: videoLength || 10,
                         resolutionName: resolutionName || "720p"
                     });
+                    const resVideoText = JSON.stringify(resVideo)
                     if (!resVideo.success) {
-                        if (JSON.stringify(resVideo).includes("Too Many Requests")) {
+                        if (resVideoText.includes("ended before receiving CONNECT response")) {
+                            const connectErrorCount = increaseConnectErrorCount(accNew.id)
+                            console.log(`---receiving CONNECT (${connectErrorCount}/${CONNECT_ERROR_LIMIT})`)
+
+                            if (connectErrorCount >= CONNECT_ERROR_LIMIT) {
+                                console.log("---Remove acccount after consecutive CONNECT errors")
+                                resetConnectErrorCount(accNew.id)
+                                AccountStore.remove(accNew.id)
+                            }
+                            continue
+                        }
+
+                        resetConnectErrorCount(accNew.id)
+
+                        if (resVideoText.includes("Too Many Requests")) {
                             console.log("---RETRY")
                             continue
                         }
-                        if (JSON.stringify(resVideo).includes("Unauthorized")) {
+                        if (resVideoText.includes("Unauthorized")) {
                             console.log("---Remove acccount")
                             AccountStore.remove(accNew.id)
                             continue
                         }
-                        if (JSON.stringify(resVideo).includes("Forbidden")) {
+                        if (resVideoText.includes("Forbidden")) {
                             console.log("---Forbidden, remove acccount")
                             AccountStore.remove(accNew.id)
                             continue
                         }
-                        if (JSON.stringify(resVideo).includes("ended before receiving CONNECT response")) {
-                            console.log("---receiving CONNECT")
-                            AccountStore.remove(accNew.id)
-                            continue
-                        }
-                        if (JSON.stringify(resVideo).includes("Proxy Authentication Required")) {
+                        if (resVideoText.includes("Proxy Authentication Required")) {
                             console.log("---Authentication Required")
                             AccountStore.remove(accNew.id)
                             continue
                         }
-                        if (JSON.stringify(resVideo).includes("reason: socket hang up")) {
+                        if (resVideoText.includes("reason: socket hang up")) {
                             console.log("---Hangup")
                             continue
                         }
-                        if (JSON.stringify(resVideo).includes("ECONNRESET")) {
+                        if (resVideoText.includes("ECONNRESET")) {
                             console.log("---ECONNRESET")
                             continue
                         }
@@ -119,6 +144,7 @@ const generateVideo = async (req, res) => {
                             return false
                         }
                     } else {
+                        resetConnectErrorCount(accNew.id)
                         const pathUrls = [];
                         for (const video of resVideo.videos) {
 
