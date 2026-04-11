@@ -45,6 +45,83 @@ class APIClientGrok {
             }
         }
     }
+    async _2imageToVideo({
+        imageUrls = [],
+        promptText = "into a video",
+        aspectRatio = "9:16",
+        videoLength = 6,
+        resolutionName = "480p",
+    }) {
+        // Implementation for _2imageToVideo
+        const imageReferences = [];
+        for (const imageUrl of imageUrls) {
+            try {
+                const url = await this.client.uploadFile(imageUrl);
+                if (!url?.fileUri) {
+                    return {
+                        success: false,
+                        error: JSON.stringify(url),
+                        result: "uploadFile failed"
+                    }
+                }
+                const fileUri = `https://assets.grok.com/${url?.fileUri}`
+                if (fileUri) imageReferences.push(fileUri);
+            } catch (err) {
+                console.error("❌ Upload image failed:", err);
+            }
+        }
+        console.log(imageReferences)
+
+        const posts = await this.client.createPostVideoId(promptText);
+        const parentPostId = posts?.post?.id;
+        if (!parentPostId) {
+            return {
+                success: false,
+                error: "createPostVideoId failed: parentPostId missing"
+            }
+        }
+        const result = await this.client._2imageToVideo({
+            imageReferences,
+            parentPostId,
+            promptText:`${imageReferences.join(" ")} ${promptText}`,
+            aspectRatio,
+            videoLength,
+            resolutionName
+        });
+        try {
+            const events = result
+                .trim()
+                .split("\n")
+                .map(line => JSON.parse(line));
+            const videos = events.flatMap(e => {
+                const r = e?.result?.response;
+                if (!r) return [];
+
+                const v = r.streamingVideoGenerationResponse;
+
+                if (v?.videoUrl && v.progress === 100) {
+                    return ["https://assets.grok.com/" + v.videoUrl];
+                }
+
+                return [];
+            });
+
+            return {
+                success: true,
+                videos
+            };
+
+        } catch (parseErr) {
+            console.error("❌ Parse _2imageToVideo result failed:", parseErr);
+            return {
+                success: false,
+                error: JSON.stringify(parseErr),
+                result
+            }
+        }
+
+    }
+
     async generateImage({
         promptText = "",
         imageUrls = [],
@@ -167,7 +244,7 @@ class APIClientGrok {
 
             result = await this.client.generateVideo({
                 fileId,
-                promptText: `${url || ''} ${promptText} --mode=custom`,
+                promptText: `${url || ''} ${promptText}`,
                 aspectRatio,
                 videoLength,
                 resolutionName,

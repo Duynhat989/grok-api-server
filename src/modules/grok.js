@@ -301,7 +301,7 @@ class GrokClient {
     const bodyJson = {
       "temporary": this.temporary,
       "modelName": modelName,
-      "message": promptText,
+      "message": `${promptText}  --mode=custom`,
       "enableImageGeneration": true,
       "returnImageBytes": false,
       "returnRawGrokInXaiRequest": false,
@@ -346,7 +346,7 @@ class GrokClient {
     const body = {
       temporary: this.temporary,
       modelName: modelName,
-      message: promptText.trim(),
+      message: `${promptText.trim()}  --mode=custom`,
       fileAttachments: fileId ? [fileId] : [],
       toolOverrides: { videoGen: true },
       enableSideBySide: true,
@@ -359,6 +359,44 @@ class GrokClient {
               aspectRatio,
               videoLength,
               resolutionName
+            }
+          }
+        }
+      }
+    }
+    return this._post("/rest/app-chat/conversations/new", body)
+  }
+
+  async _2imageToVideo({
+    promptText,
+    aspectRatio = "9:16",
+    videoLength = 6,
+    resolutionName = "480p",
+    parentPostId = "",
+    modelName = 'grok-3',
+    imageReferences
+  } = {}) {
+    if (!promptText) throw new Error("prompt is required")
+
+    const body = {
+      "temporary": true,
+      "modelName": modelName,
+      "message": `${promptText}  --mode=custom`,
+      "toolOverrides": {
+        "videoGen": true
+      },
+      "enableSideBySide": true,
+      "responseMetadata": {
+        "experiments": [],
+        "modelConfigOverride": {
+          "modelMap": {
+            "videoGenModelConfig": {
+              "parentPostId": parentPostId,
+              "aspectRatio": aspectRatio,
+              "videoLength": videoLength,
+              "resolutionName": resolutionName,
+              "isReferenceToVideo": true,
+              "imageReferences": imageReferences
             }
           }
         }

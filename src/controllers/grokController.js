@@ -41,7 +41,7 @@ const systemReport = {
 }
 const generateVideo = async (req, res) => {
     try {
-        const { promptText, imageUrl, videoLength, resolutionName, aspectRatio = "9:16" } = req.body;
+        const { promptText, imageUrls = [], videoLength, resolutionName, aspectRatio = "9:16" } = req.body;
         const taskId = randomUUID();
         TASK_MANAGERS[taskId] = {
             success: false,
@@ -83,13 +83,25 @@ const generateVideo = async (req, res) => {
                         userAgent: chromeData.userAgent,
                         proxyHttp: accNew.proxy
                     });
-                    const resVideo = await grok.generateVideo({
-                        promptText,
-                        imageUrl,
-                        aspectRatio,
-                        videoLength: videoLength || 10,
-                        resolutionName: resolutionName || "720p"
-                    });
+                    let resVideo = null
+                    if (imageUrls && imageUrls.length > 1) {
+                        resVideo = await grok._2imageToVideo({
+                            imageUrls,
+                            promptText,
+                            aspectRatio,
+                            videoLength: videoLength || 10,
+                            resolutionName: resolutionName || "720p"
+                        })
+                    } else {
+                        const imageUrl = imageUrls.length > 0 ? imageUrls[0] : null
+                        resVideo = await grok.generateVideo({
+                            promptText,
+                            imageUrl,
+                            aspectRatio,
+                            videoLength: videoLength || 10,
+                            resolutionName: resolutionName || "720p"
+                        });
+                    }
                     const resVideoText = JSON.stringify(resVideo)
                     if (!resVideo.success) {
                         if (resVideoText.includes("ended before receiving CONNECT response")) {
