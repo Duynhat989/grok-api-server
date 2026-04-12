@@ -149,7 +149,8 @@ const generateVideo = async (req, res) => {
                             TASK_MANAGERS[taskId] = {
                                 success: false,
                                 code: "error",
-                                msg: resVideo.error
+                                msg: resVideo.error,
+                                data: resVideo?.result || `Video generation failed without specific error message`
                             };
                             console.log("Error: ", resVideo)
                             systemReport.error++
@@ -181,7 +182,8 @@ const generateVideo = async (req, res) => {
                             TASK_MANAGERS[taskId] = {
                                 success: false,
                                 code: "error",
-                                msg: "Video generation failed"
+                                msg: "Video generation failed",
+                                data: resVideo?.result || `No video URL found in response`
                             };
                             console.log("Error: Video generation failed")
                             systemReport.error++
@@ -195,7 +197,7 @@ const generateVideo = async (req, res) => {
                         success: false,
                         code: "error",
                         msg: "Video generation error",
-                        error: errText
+                        data:err?.message || errText 
                     };
                     console.error("generate-video error:", err);
 
@@ -259,10 +261,10 @@ const generateImage = async (req, res) => {
         };
 
         (async () => {
-
+            let images
             try {
 
-                const images = await grok.generateImage({
+                images = await grok.generateImage({
                     promptText,
                     imageUrls,
                     numImages: numImages || 1
@@ -289,11 +291,11 @@ const generateImage = async (req, res) => {
                     };
 
                 } else {
-
                     TASK_MANAGERS[taskId] = {
                         success: false,
                         code: "error",
-                        msg: "Image generation failed"
+                        msg: "Image generation failed",
+                        data: images?.result || `No image URL found in response`
                     };
 
                 }
@@ -303,7 +305,8 @@ const generateImage = async (req, res) => {
                     success: false,
                     code: "error",
                     msg: "Image generation error",
-                    error: err.message
+                    error: err.message,
+                    data: images || `No additional error information available`
                 };
 
                 console.error("generate-image error:", err);

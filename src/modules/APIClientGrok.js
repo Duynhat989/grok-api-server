@@ -53,71 +53,82 @@ class APIClientGrok {
         resolutionName = "480p",
     }) {
         // Implementation for _2imageToVideo
-        const imageReferences = [];
-        for (const imageUrl of imageUrls) {
-            try {
-                const url = await this.client.uploadFile(imageUrl);
-                if (!url?.fileUri) {
-                    return {
-                        success: false,
-                        error: JSON.stringify(url),
-                        result: "uploadFile failed"
+        let result
+        try {
+            const imageReferences = [];
+            for (const imageUrl of imageUrls) {
+                try {
+                    const url = await this.client.uploadFile(imageUrl);
+                    if (!url?.fileUri) {
+                        return {
+                            success: false,
+                            error: JSON.stringify(url),
+                            result: "uploadFile failed"
+                        }
                     }
+                    const fileUri = `https://assets.grok.com/${url?.fileUri}`
+                    if (fileUri) imageReferences.push(fileUri);
+                } catch (err) {
+                    console.error("❌ Upload image failed:", err);
                 }
-                const fileUri = `https://assets.grok.com/${url?.fileUri}`
-                if (fileUri) imageReferences.push(fileUri);
-            } catch (err) {
-                console.error("❌ Upload image failed:", err);
             }
-        }
-        console.log(imageReferences)
+            console.log(imageReferences)
 
-        const posts = await this.client.createPostVideoId(promptText);
-        const parentPostId = posts?.post?.id;
-        if (!parentPostId) {
+            const posts = await this.client.createPostVideoId(promptText);
+            const parentPostId = posts?.post?.id;
+            if (!parentPostId) {
+                return {
+                    success: false,
+                    error: "createPostVideoId failed: parentPostId missing"
+                }
+            }
+            result = await this.client._2imageToVideo({
+                imageReferences,
+                parentPostId,
+                promptText: `${imageReferences.join(" ")} ${promptText}`,
+                aspectRatio,
+                videoLength,
+                resolutionName
+            });
+            try {
+                const events = result
+                    .trim()
+                    .split("\n")
+                    .map(line => JSON.parse(line));
+                const videos = events.flatMap(e => {
+                    const r = e?.result?.response;
+                    if (!r) return [];
+
+                    const v = r.streamingVideoGenerationResponse;
+
+                    if (v?.videoUrl && v.progress === 100) {
+                        return ["https://assets.grok.com/" + v.videoUrl];
+                    }
+
+                    return [];
+                });
+
+                return {
+                    success: true,
+                    videos
+                };
+
+            } catch (parseErr) {
+                console.error("❌ Parse _2imageToVideo result failed:", parseErr);
+                return {
+                    success: false,
+                    error: JSON.stringify(parseErr),
+                    result
+                }
+            }
+        } catch (error) {
+            console.error("❌ _2imageToVideo error:", error);
             return {
                 success: false,
-                error: "createPostVideoId failed: parentPostId missing"
-            }
-        }
-        const result = await this.client._2imageToVideo({
-            imageReferences,
-            parentPostId,
-            promptText:`${imageReferences.join(" ")} ${promptText}`,
-            aspectRatio,
-            videoLength,
-            resolutionName
-        });
-        try {
-            const events = result
-                .trim()
-                .split("\n")
-                .map(line => JSON.parse(line));
-            const videos = events.flatMap(e => {
-                const r = e?.result?.response;
-                if (!r) return [];
-
-                const v = r.streamingVideoGenerationResponse;
-
-                if (v?.videoUrl && v.progress === 100) {
-                    return ["https://assets.grok.com/" + v.videoUrl];
-                }
-
-                return [];
-            });
-
-            return {
-                success: true,
-                videos
+                error: error?.message || JSON.stringify(error),
+                result
             };
 
-        } catch (parseErr) {
-            console.error("❌ Parse _2imageToVideo result failed:", parseErr);
-            return {
-                success: false,
-                error: JSON.stringify(parseErr),
-                result
-            }
         }
 
     }
@@ -128,6 +139,7 @@ class APIClientGrok {
         aspectRatio = "16:9",
         numImages = 4
     }) {
+        let imgResult
         try {
             const imageReferences = [];
             for (const imageUrl of imageUrls) {
@@ -147,7 +159,7 @@ class APIClientGrok {
             }
 
 
-            const imgResult = await this.client.generateImage({
+            imgResult = await this.client.generateImage({
                 imageReferences,
                 parentPostId,
                 promptText,
@@ -185,12 +197,20 @@ class APIClientGrok {
 
             } catch (parseErr) {
                 console.error("❌ Parse image result failed:", parseErr);
-                throw new Error(parseErr);
+                return {
+                    success: false,
+                    error: JSON.stringify(parseErr),
+                    result: imgResult
+                };
             }
 
         } catch (err) {
             console.error("❌ generateImage error:", err);
-            return [];
+            return {
+                success: false,
+                error: err?.message || JSON.stringify(err),
+                result: imgResult
+            };
         }
     }
 
@@ -287,7 +307,8 @@ class APIClientGrok {
         } catch (err) {
             return {
                 success: false,
-                error: JSON.stringify(err)
+                error: JSON.stringify(err),
+                result: result
             }
         }
     }
