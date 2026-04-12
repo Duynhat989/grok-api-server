@@ -110,7 +110,8 @@ class APIClientGrok {
 
                 return {
                     success: true,
-                    videos
+                    videos,
+                    result: videos.length > 0 ? videos : result
                 };
 
             } catch (parseErr) {
@@ -286,13 +287,13 @@ class APIClientGrok {
                     if (v?.videoUrl && v.progress === 100) {
                         return ["https://assets.grok.com/" + v.videoUrl];
                     }
-
                     return [];
                 });
 
                 return {
                     success: true,
-                    videos
+                    videos,
+                    result: videos.length > 0 ? videos : result
                 };
 
             } catch (parseErr) {
