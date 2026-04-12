@@ -143,11 +143,21 @@ class GrokClient {
 
       const decoder = new TextDecoder()
 
-      for await (const chunk of res.data) {
-        result += decoder.decode(chunk)
-      }
+      return new Promise((resolve, reject) => {
+        let result = ""
+        const decoder = new TextDecoder()
 
-      return result
+        res.data.on("data", chunk => {
+          result += decoder.decode(chunk, { stream: true }) // 🔥 FIX
+        })
+
+        res.data.on("end", () => {
+          result += decoder.decode() // 🔥 flush phần còn lại
+          resolve(result)
+        })
+
+        res.data.on("error", reject)
+      })
 
     } catch (err) {
 
