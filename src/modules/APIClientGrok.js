@@ -50,7 +50,7 @@ class APIClientGrok {
         try {
             jsonData = JSON.parse(result)
         } catch (error) { 
-            jsonData = result
+            jsonData = result;
         }
         if (jsonData.status === 429) {
             return false

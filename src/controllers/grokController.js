@@ -374,6 +374,7 @@ const getTask = async (req, res) => {
         system: systemReport,
         ...task
     });
+    
 }
 
 
