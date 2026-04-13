@@ -24,7 +24,7 @@ const clearUuid = (uuid) => {
     console.log("TaskId: ", uuid)
     setTimeout(() => {
         delete TASK_MANAGERS[uuid];
-    }, 15 * 60 * 1000);
+    }, 25 * 60 * 1000);
 };
 
 const chromeData = {
@@ -52,6 +52,9 @@ const generateVideo = async (req, res) => {
         (async () => {
             // Xử lý logic tạo video ở đây
             for (let index = 0; index <= RETRY; index++) {
+                if(!TASK_MANAGERS[taskId]){
+                    return false
+                }
                 TASK_MANAGERS[taskId].step = index
                 if (index == RETRY) {
                     TASK_MANAGERS[taskId] = {
