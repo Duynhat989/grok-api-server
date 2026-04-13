@@ -82,7 +82,6 @@ const generateVideo = async (req, res) => {
                         await delay(10 * 1000)
                         continue
                     }
-                    console.log(accNew.id)
                     // Cộng thêm phần xử lý
                     AccountStore.incProcessing(accNew.id)
                     // Xử lý nội dung
