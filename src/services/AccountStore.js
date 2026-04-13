@@ -123,7 +123,7 @@ class AccountStore {
         let best = null;
 
         for (const acc of this.accounts.values()) {
-            if (acc.processing > 40) {
+            if (acc.processing > 5) {
                 continue;
             }
             if (!best) {
