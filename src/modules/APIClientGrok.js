@@ -47,7 +47,6 @@ class APIClientGrok {
     }
     async isCheckError(result = {}) {
         let jsonData = ""
-        console.log("TYPE: ",typeof result)
         try {
             jsonData = JSON.parse(result)
         } catch (error) { 
