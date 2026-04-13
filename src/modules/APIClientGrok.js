@@ -45,6 +45,19 @@ class APIClientGrok {
             }
         }
     }
+    async isCheckError(result = {}) {
+        let jsonData = ""
+        console.log("TYPE: ",typeof result)
+        try {
+            jsonData = JSON.parse(result)
+        } catch (error) { 
+            jsonData = result
+        }
+        if (jsonData.status === 429) {
+            return false
+        }
+        return true
+    }
     async _2imageToVideo({
         imageUrls = [],
         promptText = "into a video",
@@ -90,6 +103,14 @@ class APIClientGrok {
                 videoLength,
                 resolutionName
             });
+            const isError = await this.isCheckError(result)
+            if (!isError) {
+                return {
+                    success: false,
+                    error: "Error response received from Grok API",
+                    result
+                }
+            }
             try {
                 const events = result
                     .trim()
@@ -172,6 +193,14 @@ class APIClientGrok {
                 aspectRatio
             });
 
+            const isError = await this.isCheckError(imgResult)
+            if (!isError) {
+                return {
+                    success: false,
+                    error: "Error response received from Grok API Image Generation",
+                    result: imgResult
+                }
+            }
             try {
                 const events = imgResult
                     .trim()
@@ -280,7 +309,15 @@ class APIClientGrok {
                 resolutionName,
                 parentPostId
             });
-
+            
+            const isError = await this.isCheckError(result)
+            if (!isError) {
+                return {
+                    success: false,
+                    error: "Error response received from Video API",
+                    result
+                }
+            }
             try {
                 const events = result
                     .trim()

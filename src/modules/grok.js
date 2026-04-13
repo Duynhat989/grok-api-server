@@ -123,13 +123,24 @@ class GrokClient {
       ...extra
     }
   }
+  _cleanupStream(res, fileStream = null) {
+    try {
+      res?.data?.removeAllListeners?.()
+      res?.data?.destroy?.()
 
+      if (fileStream) {
+        fileStream.end()
+        fileStream.destroy()
+      }
+    } catch (e) { }
+  }
   async _post(path, body) {
     const url = `${this.baseUrl}${path}`
     const headers = this._buildHeaders()
 
     try {
       const agent = createProxyAgent(this.proxyHttp)
+
       const res = await axios({
         method: "POST",
         url,
@@ -139,40 +150,38 @@ class GrokClient {
         responseType: "stream"
       })
 
-      let result = ""
-
-      const decoder = new TextDecoder()
-
       return new Promise((resolve, reject) => {
         let result = ""
         const decoder = new TextDecoder()
 
+        const MAX_SIZE = 100 * 1024 * 1024 // 🔥 100MB limit
+
         res.data.on("data", chunk => {
-          result += decoder.decode(chunk, { stream: true }) // 🔥 FIX
+          result += decoder.decode(chunk, { stream: true })
+
+          // 🚨 chống tràn RAM
+          if (result.length > MAX_SIZE) {
+            this._cleanupStream(res)
+            return reject(new Error("Response too large (memory protection)"))
+          }
         })
 
         res.data.on("end", () => {
-          result += decoder.decode() // 🔥 flush phần còn lại
+          result += decoder.decode()
+          this._cleanupStream(res)
           resolve(result)
         })
 
-        res.data.on("error", reject)
+        res.data.on("error", err => {
+          this._cleanupStream(res)
+          reject(err)
+        })
       })
 
     } catch (err) {
-
       if (err.response) {
-        console.log({
-          status: err.response.status,
-          statusText: err.response.statusText
-        })
-
-        return {
-          status: err.response.status,
-          statusText: err.response.statusText
-        }
+        return { status: err.response.status, statusText: err.response.statusText }
       }
-
       throw err
     }
   }
@@ -293,6 +302,7 @@ class GrokClient {
         file.on("finish", () => file.close(() => resolve(outputPath)))
       })
       req.on("error", err => {
+        this._cleanupStream(null, file)
         fs.unlink(outputPath, () => { })
         reject(err)
       })
