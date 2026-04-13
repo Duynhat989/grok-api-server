@@ -24,7 +24,7 @@ const clearUuid = (uuid) => {
     console.log("TaskId: ", uuid)
     setTimeout(() => {
         delete TASK_MANAGERS[uuid];
-    }, 25 * 60 * 1000);
+    }, 15 * 60 * 1000);
 };
 
 const chromeData = {
@@ -220,6 +220,8 @@ const generateVideo = async (req, res) => {
                         }, 10 * 1000)
                     }
                     systemReport.processing--
+
+                    
                 }
             }
 

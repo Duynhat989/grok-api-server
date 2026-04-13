@@ -131,6 +131,10 @@ class APIClientGrok {
             };
 
         }
+        finally {
+            // Clean up any temporary files if needed
+            result = null; // Clear result from memory
+        }
 
     }
 
@@ -213,6 +217,11 @@ class APIClientGrok {
                 result: imgResult
             };
         }
+        finally {
+            // Clean up any temporary files if needed
+            imgResult = null; // Clear result from memory
+        }
+
     }
 
     async generateVideo({
