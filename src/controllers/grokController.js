@@ -196,7 +196,7 @@ const generateVideo = async (req, res) => {
                                 msg: "Video generation failed",
                                 data: resVideo?.result || `No video URL found in response`
                             };
-                            console.log("Error: Video generation failed")
+                            console.log("Mola: ",resVideo?.result)
                             systemReport.error++
                         }
                         return false
