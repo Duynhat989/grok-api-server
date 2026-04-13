@@ -21,7 +21,6 @@ const resetConnectErrorCount = (accountId) => {
 };
 
 const clearUuid = (uuid) => {
-    console.log("TaskId: ", uuid)
     setTimeout(() => {
         delete TASK_MANAGERS[uuid];
     }, 15 * 60 * 1000);
@@ -137,9 +136,9 @@ const generateVideo = async (req, res) => {
                         }
                         if (resVideoText.includes("Forbidden")) {
                             console.log("---Forbidden, remove acccount", resVideo)
-                            AccountStore.remove(accNew.id)
-                            const act = await AccountStore.findById(accNew.id)
-                            console.log("---Account info: ", act)
+                            // AccountStore.remove(accNew.id)
+                            // const act = await AccountStore.findById(accNew.id)
+                            // console.log("---Account info: ", act)
                             continue
                         }
                         if (resVideoText.includes("Proxy Authentication Required")) {

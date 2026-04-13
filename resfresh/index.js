@@ -110,10 +110,7 @@ const cookieLiveDie = async ({
     const isLive = await grok.isCheckLive({
         imageUrl
     })
-    console.log(isLive)
     if (isLive && JSON.stringify(isLive).includes("Unauthorized")) {
-        console.log("---Unauthorized")
-        // 
         return {
             success: false,
             details: "Unauthorized",
