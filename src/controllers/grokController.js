@@ -113,6 +113,7 @@ const generateVideo = async (req, res) => {
                     }
                     const resVideoText = JSON.stringify(resVideo)
                     if (!resVideo.success) {
+                        await delay(2 * 1000)
                         if (resVideoText.includes("ended before receiving CONNECT response")) {
                             const connectErrorCount = increaseConnectErrorCount(accNew.id)
                             console.log(`---receiving CONNECT (${connectErrorCount}/${CONNECT_ERROR_LIMIT})`)
