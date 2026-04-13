@@ -139,6 +139,8 @@ const generateVideo = async (req, res) => {
                         if (resVideoText.includes("Forbidden")) {
                             console.log("---Forbidden, remove acccount")
                             AccountStore.remove(accNew.id)
+                            const act = await AccountStore.findById(accNew.id)
+                            console.log("---Account info: ", act)
                             continue
                         }
                         if (resVideoText.includes("Proxy Authentication Required")) {

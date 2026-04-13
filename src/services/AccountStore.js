@@ -6,7 +6,12 @@ class AccountStore {
     constructor() {
         this.accounts = new Map();
 
+
+        this.accountFulls = new Map();
+
         this.filePath = path.join(projectPath, "data/temp.json");
+
+        this.filePathData = path.join(projectPath, "data/data.json");
 
         // load khi start
         this.load();
@@ -31,11 +36,20 @@ class AccountStore {
             for (const item of data) {
                 this.accounts.set(item.id, {
                     ...item,
-                    processing : 0,
-                    done : 0,
+                    processing: 0,
+                    done: 0,
                 });
             }
 
+
+            const raw1 = fs.readFileSync(this.filePathData, "utf-8");
+            const data1 = JSON.parse(raw1);
+            for (const item of data1) {
+                this.accountFulls.set(item.id, {
+                    ...item,
+                });
+            }
+            console.log("✅ Loaded accountFulls:", this.accountFulls.size);
             console.log("✅ Loaded accounts:", this.accounts.size);
         } catch (err) {
             console.log("❌ Load error:", err.message);
@@ -149,6 +163,9 @@ class AccountStore {
 
     list() {
         return Array.from(this.accounts.values());
+    }
+    findById(id) {
+        return this.accountFulls.get(id);
     }
 }
 
