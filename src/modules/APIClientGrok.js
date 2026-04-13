@@ -176,7 +176,6 @@ class APIClientGrok {
                     console.error("❌ Upload image failed:", err);
                 }
             }
-            console.log(imageReferences)
             const posts = await this.client.createPostId(promptText);
             const parentPostId = posts?.post?.id;
             if (!parentPostId) {
@@ -266,7 +265,6 @@ class APIClientGrok {
             let fileId = undefined
             if (imageUrl && imageUrl.length > 4) {
                 url = await this.client.uploadFile(imageUrl);
-                console.log(url)
                 if (!url?.fileUri) {
                     return {
                         success: false,

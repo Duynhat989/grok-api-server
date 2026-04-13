@@ -129,7 +129,6 @@ const generateVideo = async (req, res) => {
                         resetConnectErrorCount(accNew.id)
 
                         if (resVideoText.includes("Too Many Requests")) {
-                            console.log("---RETRY")
                             continue
                         }
                         if (resVideoText.includes("Unauthorized")) {
@@ -138,7 +137,7 @@ const generateVideo = async (req, res) => {
                             continue
                         }
                         if (resVideoText.includes("Forbidden")) {
-                            console.log("---Forbidden, remove acccount")
+                            console.log("---Forbidden, remove acccount", resVideo)
                             AccountStore.remove(accNew.id)
                             const act = await AccountStore.findById(accNew.id)
                             console.log("---Account info: ", act)
@@ -197,7 +196,7 @@ const generateVideo = async (req, res) => {
                                 msg: "Video generation failed",
                                 data: resVideo?.result || `No video URL found in response`
                             };
-                            console.log("Mola: ",resVideo?.result)
+                            console.log("Mola: ", resVideo?.result)
                             systemReport.error++
                         }
                         return false
@@ -214,7 +213,6 @@ const generateVideo = async (req, res) => {
                     console.error("generate-video error:", err);
 
                 } finally {
-                    console.log("---Clear---")
                     // Finish task
                     if (accNew && accNew?.id) {
                         setTimeout(() => {
@@ -224,7 +222,7 @@ const generateVideo = async (req, res) => {
                     }
                     systemReport.processing--
 
-                    
+
                 }
             }
 
@@ -375,7 +373,7 @@ const getTask = async (req, res) => {
         system: systemReport,
         ...task
     });
-    
+
 }
 
 
