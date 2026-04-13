@@ -52,7 +52,13 @@ const generateVideo = async (req, res) => {
         (async () => {
             // Xử lý logic tạo video ở đây
             for (let index = 0; index <= RETRY; index++) {
-                if(!TASK_MANAGERS[taskId]){
+                if (!TASK_MANAGERS[taskId]) {
+                    TASK_MANAGERS[taskId] = {
+                        success: false,
+                        code: "error",
+                        msg: "not found task"
+                    };
+                    systemReport.error++
                     return false
                 }
                 TASK_MANAGERS[taskId].step = index
@@ -200,7 +206,7 @@ const generateVideo = async (req, res) => {
                         success: false,
                         code: "error",
                         msg: "Video generation error",
-                        data:err?.message || errText 
+                        data: err?.message || errText
                     };
                     console.error("generate-video error:", err);
 
